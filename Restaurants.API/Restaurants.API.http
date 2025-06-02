@@ -1,0 +1,205 @@
+@Restaurants.API_HostAddress = http://localhost:5044
+
+GET {{Restaurants.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+### Restaurant API Test Requests
+### Base URL
+@baseUrl = https://localhost:7151
+@contentType = application/json
+
+### ===================================
+### 1. GET ALL RESTAURANTS
+### ===================================
+GET {{baseUrl}}/api/restaurants
+Accept: {{contentType}}
+
+### ===================================
+### 2. GET RESTAURANT BY ID (ID = 1)
+### ===================================
+GET {{baseUrl}}/api/restaurants/1
+Accept: {{contentType}}
+
+### ===================================
+### 3. GET RESTAURANT BY ID (ID = 2)
+### ===================================
+GET {{baseUrl}}/api/restaurants/2
+Accept: {{contentType}}
+
+### ===================================
+### 4. GET RESTAURANT BY ID (ID = 3)
+### ===================================
+GET {{baseUrl}}/api/restaurants/3
+Accept: {{contentType}}
+
+### ===================================
+### 5. GET NON-EXISTENT RESTAURANT (Should return 404)
+### ===================================
+GET {{baseUrl}}/api/restaurants/999
+Accept: {{contentType}}
+
+### ===================================
+### 6. CREATE NEW RESTAURANT - Italian
+### ===================================
+POST {{baseUrl}}/api/restaurants
+Content-Type: {{contentType}}
+
+{
+  "name": "Bella Italia",
+  "description": "Authentic Italian cuisine with homemade pasta and traditional recipes",
+  "category": "Italian",
+  "hasDelivery": true,
+  "contactEmail": "info@bellaitalia.com",
+  "contactNumber": "+1234567890",
+  "address": {
+    "street": "456 Rome Street",
+    "city": "Boston",
+    "postalCode": "02101"
+  }
+}
+
+### ===================================
+### 7. CREATE NEW RESTAURANT - Mexican
+### ===================================
+POST {{baseUrl}}/api/restaurants
+Content-Type: {{contentType}}
+
+{
+  "name": "Taco Fiesta",
+  "description": "Fresh Mexican food with authentic flavors and spices",
+  "category": "Mexican",
+  "hasDelivery": true,
+  "contactEmail": "contact@tacofiesta.com",
+  "contactNumber": "+1987654321",
+  "address": {
+    "street": "789 Cinco de Mayo Ave",
+    "city": "Austin",
+    "postalCode": "78701"
+  }
+}
+
+### ===================================
+### 8. CREATE NEW RESTAURANT - Minimal Data
+### ===================================
+POST {{baseUrl}}/api/restaurants
+Content-Type: {{contentType}}
+
+{
+  "name": "Simple Cafe",
+  "description": "A cozy place for coffee and light meals",
+  "category": "Cafe",
+  "hasDelivery": false
+}
+
+### ===================================
+### 9. CREATE RESTAURANT WITH VALIDATION ERRORS (Empty name)
+### ===================================
+POST {{baseUrl}}/api/restaurants
+Content-Type: {{contentType}}
+
+{
+  "name": "",
+  "description": "This should fail validation",
+  "category": "Test",
+  "hasDelivery": false
+}
+
+### ===================================
+### 10. CREATE RESTAURANT WITH INVALID EMAIL
+### ===================================
+POST {{baseUrl}}/api/restaurants
+Content-Type: {{contentType}}
+
+{
+  "name": "Invalid Email Restaurant",
+  "description": "Testing email validation",
+  "category": "Test",
+  "hasDelivery": false,
+  "contactEmail": "invalid-email-format"
+}
+
+### ===================================
+### 11. UPDATE RESTAURANT (ID = 1)
+### ===================================
+PUT {{baseUrl}}/api/restaurants/1
+Content-Type: {{contentType}}
+
+{
+  "name": "Pizza Palace - Updated",
+  "description": "Authentic Italian pizza with fresh ingredients - Now with expanded menu!",
+  "category": "Italian",
+  "hasDelivery": true,
+  "contactEmail": "updated@pizzapalace.com",
+  "contactNumber": "+1234567890",
+  "address": {
+    "street": "123 Main St - Suite 100",
+    "city": "New York",
+    "postalCode": "10001"
+  }
+}
+
+### ===================================
+### 12. UPDATE RESTAURANT (ID = 2)
+### ===================================
+PUT {{baseUrl}}/api/restaurants/2
+Content-Type: {{contentType}}
+
+{
+  "name": "Burger Town Premium",
+  "description": "Premium burgers made with quality beef - Now serving organic options",
+  "category": "American",
+  "hasDelivery": true,
+  "contactEmail": "premium@burgertown.com",
+  "contactNumber": "+1987654321",
+  "address": {
+    "street": "456 Oak Ave",
+    "city": "Los Angeles",
+    "postalCode": "90210"
+  }
+}
+
+### ===================================
+### 13. UPDATE NON-EXISTENT RESTAURANT (Should return 404)
+### ===================================
+PUT {{baseUrl}}/api/restaurants/999
+Content-Type: {{contentType}}
+
+{
+  "name": "Non-existent Restaurant",
+  "description": "This should return 404",
+  "category": "Test",
+  "hasDelivery": false
+}
+
+### ===================================
+### 14. DELETE RESTAURANT (ID = 3)
+### ===================================
+DELETE {{baseUrl}}/api/restaurants/3
+
+### ===================================
+### 15. DELETE NON-EXISTENT RESTAURANT (Should return 404)
+### ===================================
+DELETE {{baseUrl}}/api/restaurants/999
+
+### ===================================
+### 16. GET ALL RESTAURANTS AFTER OPERATIONS
+### ===================================
+GET {{baseUrl}}/api/restaurants
+Accept: {{contentType}}
+
+### ===================================
+### 17. TEST SWAGGER UI (Open in browser)
+### ===================================
+# Open this URL in your browser:
+# {{baseUrl}}/swagger
+
+### ===================================
+### NOTES:
+### - Make sure the API is running before executing these requests
+### - Run requests in order for best results
+### - The seeded data includes 3 restaurants with IDs 1, 2, 3
+### - Some requests are designed to test error scenarios (404, validation errors)
+### - Use ### to separate requests when using REST Client extension
+### ===================================

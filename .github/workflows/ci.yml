@@ -1,0 +1,183 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x' # Using .NET 9 as .NET 10 preview might not be available in GitHub Actions
+        include-prerelease: true
+        
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Run Unit Tests - Application Layer
+      run: dotnet test Restaurants.Application.Tests/Restaurants.Application.Tests.csproj --no-build --configuration Release --verbosity normal --logger trx --results-directory TestResults/
+      
+    - name: Run Integration Tests - Infrastructure Layer
+      run: dotnet test Restaurants.Infrastructure.Tests/Restaurants.Infrastructure.Tests.csproj --no-build --configuration Release --verbosity normal --logger trx --results-directory TestResults/
+      
+    - name: Run Integration Tests - API Layer
+      run: dotnet test Restaurants.API.Tests/Restaurants.API.Tests.csproj --no-build --configuration Release --verbosity normal --logger trx --results-directory TestResults/
+      
+    - name: Run All Tests with Coverage
+      run: dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory TestResults/
+      
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: TestResults/
+        
+    - name: Upload Coverage Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-reports
+        path: TestResults/**/coverage.cobertura.xml
+
+  build-and-analyze:
+    name: Build and Code Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        include-prerelease: true
+        
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Run .NET Security Scan
+      run: |
+        dotnet list package --vulnerable --include-transitive 2>&1 | tee security-scan.txt
+        if grep -q "has the following vulnerable packages" security-scan.txt; then
+          echo "::warning::Vulnerable packages detected"
+          cat security-scan.txt
+        fi
+        
+    - name: Upload Security Scan Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan
+        path: security-scan.txt
+
+  integration-test:
+    name: Integration Tests with Database
+    runs-on: ubuntu-latest
+    
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: Your_password123
+          ACCEPT_EULA: Y
+        ports:
+          - 1433:1433
+        options: --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P 'Your_password123' -Q 'SELECT 1'" --health-interval 10s --health-timeout 5s --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        include-prerelease: true
+        
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Update connection string for testing
+      run: |
+        sed -i 's/Server=(localDB)\\mssqllocaldb/Server=localhost,1433/g' Restaurants.API/appsettings.json
+        sed -i 's/Trusted_Connection=True/User Id=SA;Password=Your_password123;TrustServerCertificate=True/g' Restaurants.API/appsettings.json
+        
+    - name: Run database migrations
+      run: |
+        cd Restaurants.API
+        dotnet ef database update --project ../Restaurants.Infrastructure --startup-project .
+        
+    - name: Run API Integration Tests
+      run: dotnet test Restaurants.API.Tests/Restaurants.API.Tests.csproj --no-build --configuration Release --verbosity normal
+      env:
+        ConnectionStrings__ConnectionDb: "Server=localhost,1433;Database=RestaurantsDbNet9;User Id=SA;Password=Your_password123;TrustServerCertificate=True;"
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        include-prerelease: true
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Format check
+      run: dotnet format --verify-no-changes --verbosity diagnostic
+      
+    - name: Build with warnings as errors
+      run: dotnet build --configuration Release --verbosity normal /p:TreatWarningsAsErrors=true 
