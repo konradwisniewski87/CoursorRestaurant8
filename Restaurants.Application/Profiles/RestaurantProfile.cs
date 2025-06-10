@@ -9,7 +9,11 @@ public class RestaurantProfile : Profile
     public RestaurantProfile()
     {
         CreateMap<Restaurant, RestaurantDto>();
-        CreateMap<CreateRestaurantDto, Restaurant>();
+        
+        CreateMap<CreateRestaurantDto, Restaurant>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Dishes, opt => opt.MapFrom(src => new List<Dish>()));
+            
         CreateMap<Dish, DishDto>();
     }
 } 

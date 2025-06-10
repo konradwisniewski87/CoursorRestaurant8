@@ -31,7 +31,7 @@ public class CreateRestaurantDtoValidator : AbstractValidator<CreateRestaurantDt
             .WithMessage("Please provide a valid email address");
 
         RuleFor(x => x.ContactNumber)
-            .Matches(@"^\+?[1-9]\d{1,14}$")
+            .Matches(@"^\+?[1-9]\d{9,14}$")
             .When(x => !string.IsNullOrEmpty(x.ContactNumber))
             .WithMessage("Please provide a valid phone number");
     }
